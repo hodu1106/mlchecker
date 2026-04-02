@@ -6,16 +6,16 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 720px;
+      max-width: 760px;
       margin: 40px auto;
       padding: 0 16px;
-      background: #f7f7f9;
+      background: #f6f7fb;
     }
     .box {
       background: white;
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.05);
     }
     label {
       display: block;
@@ -25,14 +25,15 @@
     }
     input[type=text],
     input[type=number],
+    input[type=file],
     textarea,
     select {
       width: 100%;
       padding: 12px;
       font-size: 15px;
       box-sizing: border-box;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      border: 1px solid #d7dce5;
+      border-radius: 10px;
       background: #fff;
     }
     textarea {
@@ -40,26 +41,26 @@
     }
     button {
       margin-top: 20px;
-      padding: 12px 18px;
-      font-size: 16px;
+      padding: 13px 18px;
+      font-size: 15px;
       cursor: pointer;
       border: none;
-      border-radius: 8px;
-      background: #f1f3f5;
+      border-radius: 10px;
+      background: #1f6feb;
+      color: white;
+      font-weight: bold;
     }
     .muted {
       color: #666;
       font-size: 14px;
-      line-height: 1.5;
-    }
-    .checkbox-row {
-      margin-top: 16px;
+      line-height: 1.6;
     }
     .bottom-link {
-      margin-top: 20px;
+      margin-top: 18px;
     }
     a {
       text-decoration: none;
+      color: #1f6feb;
     }
   </style>
 </head>
@@ -71,7 +72,7 @@
       제보 내용은 중립적인 표현으로 작성해 주세요.
     </p>
 
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       <label for="character_name">캐릭터명</label>
       <input type="text" id="character_name" name="character_name" required>
 
@@ -96,12 +97,13 @@
       <label for="summary">내용 요약</label>
       <textarea id="summary" name="summary" rows="5" required placeholder="중립적인 표현으로 상황을 요약해 주세요."></textarea>
 
-      <div class="checkbox-row">
-        <label>
-          <input type="checkbox" name="evidence">
-          증거 있음
-        </label>
-      </div>
+      <label for="image">증거 이미지 (선택)</label>
+      <input type="file" id="image" name="image" accept="image/*">
+
+      <label>
+        <input type="checkbox" name="evidence">
+        증거 있음
+      </label>
 
       <button type="submit">제보하기</button>
     </form>
