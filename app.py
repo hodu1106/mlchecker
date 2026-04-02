@@ -32,9 +32,15 @@ def index():
 @app.route("/search", methods=["GET"])
 def search():
     name = request.args.get("name", "").strip()
+    reported = request.args.get("reported", "").strip()
 
     if not name:
-        return render_template("result.html", found=False, query=name)
+        return render_template(
+            "result.html",
+            found=False,
+            query=name,
+            reported=reported
+        )
 
     conn = get_conn()
 
@@ -52,7 +58,12 @@ def search():
 
     if not character:
         conn.close()
-        return render_template("result.html", found=False, query=name)
+        return render_template(
+            "result.html",
+            found=False,
+            query=name,
+            reported=reported
+        )
 
     linked_chars = conn.execute("""
         SELECT character_name, job, level
@@ -81,7 +92,8 @@ def search():
         reports=reports,
         report_count=report_count,
         evidence_count=evidence_count,
-        query=name
+        query=name,
+        reported=reported
     )
 
 
@@ -154,7 +166,7 @@ def report():
         conn.commit()
         conn.close()
 
-        return redirect(url_for("search", name=name))
+        return redirect(url_for("search", name=name, reported=1))
 
     return render_template("report.html")
 
