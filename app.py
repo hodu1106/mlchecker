@@ -277,7 +277,7 @@ HTML = r'''<!doctype html>
   async function openPiP(){
     if(!('documentPictureInPicture' in window)) return alert('이 브라우저에서는 Document Picture-in-Picture를 지원하지 않습니다. 최신 Chrome/Edge에서 시도해 주세요.');
     if(state.pipWindow && !state.pipWindow.closed){ state.pipWindow.focus(); return; }
-    const pipWindow=await window.documentPictureInPicture.requestWindow({width:320,height:200});
+    const pipWindow=await window.documentPictureInPicture.requestWindow({width:320,height:160});
     state.pipWindow=pipWindow;
     pipWindow.document.body.innerHTML=`<style>
       body{margin:0;background:#050505;color:#fff;font-family:Inter,system-ui,sans-serif}
