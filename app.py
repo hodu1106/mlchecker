@@ -5,6 +5,7 @@ app = Flask(__name__)
 
 DB_PATH = "db.sqlite3"
 
+
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -97,6 +98,24 @@ def report():
             return "입력값이 부족합니다."
 
         conn = get_conn()
+
+        existing_character = conn.execute("""
+            SELECT *
+            FROM characters
+            WHERE character_name = ?
+        """, (name,)).fetchone()
+
+        if not existing_character:
+            conn.execute("""
+                INSERT INTO characters (
+                    character_name,
+                    unique_code,
+                    job,
+                    level,
+                    world
+                )
+                VALUES (?, ?, '', 0, '')
+            """, (name, code))
 
         conn.execute("""
             INSERT INTO reports (
