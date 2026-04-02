@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 
 app = Flask(__name__)
@@ -154,7 +154,7 @@ def report():
         conn.commit()
         conn.close()
 
-        return "제보 완료!"
+        return redirect(url_for("search", name=name))
 
     return render_template("report.html")
 
