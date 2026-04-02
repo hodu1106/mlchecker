@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for
-import sqlite3
+import os
+import psycopg2
+import psycopg2.extras
 import cloudinary
 import cloudinary.uploader
-import os
 
 app = Flask(__name__)
 
-DB_PATH = "db.sqlite3"
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 cloudinary.config(
     cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
@@ -17,32 +18,79 @@ cloudinary.config(
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
+
+
+def ensure_schema():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS characters (
+            id SERIAL PRIMARY KEY,
+            character_name TEXT NOT NULL UNIQUE,
+            unique_code TEXT NOT NULL,
+            job TEXT,
+            level INTEGER,
+            world TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id SERIAL PRIMARY KEY,
+            character_name TEXT NOT NULL,
+            unique_code TEXT NOT NULL,
+            category TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            evidence INTEGER NOT NULL DEFAULT 0,
+            report_date DATE NOT NULL,
+            image_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS search_logs (
+            id SERIAL PRIMARY KEY,
+            character_name TEXT NOT NULL,
+            searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 @app.route("/", methods=["GET"])
 def index():
     conn = get_conn()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    ranking = conn.execute("""
+    cur.execute("""
         SELECT character_name, COUNT(*) AS cnt
         FROM search_logs
-        WHERE searched_at >= datetime('now', '-1 day')
+        WHERE searched_at >= NOW() - INTERVAL '1 day'
         GROUP BY character_name
         ORDER BY cnt DESC
         LIMIT 10
-    """).fetchall()
+    """)
+    ranking = cur.fetchall()
 
-    recent_reports = conn.execute("""
+    cur.execute("""
         SELECT character_name, category, report_date
         FROM reports
         ORDER BY id DESC
         LIMIT 5
-    """).fetchall()
+    """)
+    recent_reports = cur.fetchall()
 
+    cur.close()
     conn.close()
+
     return render_template(
         "index.html",
         ranking=ranking,
@@ -64,20 +112,23 @@ def search():
         )
 
     conn = get_conn()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    conn.execute(
-        "INSERT INTO search_logs (character_name) VALUES (?)",
+    cur.execute(
+        "INSERT INTO search_logs (character_name) VALUES (%s)",
         (name,)
     )
     conn.commit()
 
-    character = conn.execute("""
+    cur.execute("""
         SELECT *
         FROM characters
-        WHERE character_name = ?
-    """, (name,)).fetchone()
+        WHERE character_name = %s
+    """, (name,))
+    character = cur.fetchone()
 
     if not character:
+        cur.close()
         conn.close()
         return render_template(
             "result.html",
@@ -86,23 +137,26 @@ def search():
             reported=reported
         )
 
-    linked_chars = conn.execute("""
+    cur.execute("""
         SELECT character_name, job, level
         FROM characters
-        WHERE unique_code = ?
-        ORDER BY level DESC, character_name ASC
-    """, (character["unique_code"],)).fetchall()
+        WHERE unique_code = %s
+        ORDER BY level DESC NULLS LAST, character_name ASC
+    """, (character["unique_code"],))
+    linked_chars = cur.fetchall()
 
-    reports = conn.execute("""
+    cur.execute("""
         SELECT category, summary, evidence, report_date, image_url
         FROM reports
-        WHERE unique_code = ?
+        WHERE unique_code = %s
         ORDER BY report_date DESC, id DESC
-    """, (character["unique_code"],)).fetchall()
+    """, (character["unique_code"],))
+    reports = cur.fetchall()
 
     report_count = len(reports)
     evidence_count = sum(1 for r in reports if r["evidence"] == 1)
 
+    cur.close()
     conn.close()
 
     return render_template(
@@ -147,15 +201,17 @@ def report():
             image_url = upload_result.get("secure_url")
 
         conn = get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        existing_character = conn.execute("""
+        cur.execute("""
             SELECT *
             FROM characters
-            WHERE character_name = ?
-        """, (name,)).fetchone()
+            WHERE character_name = %s
+        """, (name,))
+        existing_character = cur.fetchone()
 
         if not existing_character:
-            conn.execute("""
+            cur.execute("""
                 INSERT INTO characters (
                     character_name,
                     unique_code,
@@ -163,26 +219,26 @@ def report():
                     level,
                     world
                 )
-                VALUES (?, ?, ?, ?, '메이플랜드')
+                VALUES (%s, %s, %s, %s, '메이플랜드')
             """, (name, code, job, level))
         else:
-            conn.execute("""
+            cur.execute("""
                 UPDATE characters
                 SET
-                    unique_code = ?,
+                    unique_code = %s,
                     job = CASE
-                        WHEN ? != '' THEN ?
+                        WHEN %s != '' THEN %s
                         ELSE job
                     END,
                     level = CASE
-                        WHEN ? > 0 THEN ?
+                        WHEN %s > 0 THEN %s
                         ELSE level
                     END,
                     world = '메이플랜드'
-                WHERE character_name = ?
+                WHERE character_name = %s
             """, (code, job, job, level, level, name))
 
-        conn.execute("""
+        cur.execute("""
             INSERT INTO reports (
                 character_name,
                 unique_code,
@@ -192,16 +248,19 @@ def report():
                 report_date,
                 image_url
             )
-            VALUES (?, ?, ?, ?, ?, date('now'), ?)
+            VALUES (%s, %s, %s, %s, %s, CURRENT_DATE, %s)
         """, (name, code, category, summary, evidence, image_url))
 
         conn.commit()
+        cur.close()
         conn.close()
 
         return redirect(url_for("search", name=name, reported=1))
 
     return render_template("report.html")
 
+
+ensure_schema()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000, debug=True)
