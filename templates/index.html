@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>메랜체커</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 920px;
+      margin: 40px auto;
+      padding: 0 16px;
+      background: #f7f7f9;
+    }
+    .box {
+      background: white;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    input[type=text] {
+      width: 70%;
+      padding: 12px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 18px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    ol {
+      padding-left: 20px;
+    }
+    .muted {
+      color: #666;
+      font-size: 14px;
+    }
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>메랜체커</h1>
+    <p class="muted">캐릭터명을 검색하면 연결된 기록과 동일 고유코드 캐릭터를 확인할 수 있습니다.</p>
+
+    <form action="/search" method="get">
+      <input type="text" name="name" placeholder="캐릭터명 입력">
+      <button type="submit">검색</button>
+    </form>
+  </div>
+
+  <div class="box">
+    <h2>실시간 검색 랭킹 TOP 10</h2>
+    {% if ranking %}
+      <ol>
+        {% for row in ranking %}
+          <li>
+            <a href="/search?name={{ row['character_name'] }}">{{ row["character_name"] }}</a>
+            ({{ row["cnt"] }})
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">아직 검색 기록이 없습니다.</p>
+    {% endif %}
+  </div>
+
+  <div class="box">
+    <p class="muted">
+      본 서비스는 이용자 제보 및 기록 기반 정보를 제공하며, 개별 제보 내용의 사실 여부를 확정하지 않습니다.
+    </p>
+  </div>
+</body>
+</html>
