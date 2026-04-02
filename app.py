@@ -305,10 +305,6 @@ HTML = r'''<!doctype html>
         <div id="pipGained" class="main">0 [0.00%]</div>
         <div id="pipPace" class="sub">0 [0.00%] / 60분</div>
       </div>
-      <div class="bottom">
-        <button id="pipResetBtn" class="mini warn">초기화</button>
-        <button id="pipCopyBtn" class="mini">복사</button>
-      </div>
     </div>`;
     const doc = pipWindow.document;
     doc.getElementById('pipStartPauseBtn').onclick = () => {
