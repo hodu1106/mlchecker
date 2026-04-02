@@ -76,9 +76,21 @@
   {% else %}
     <div class="box">
       <h2>{{ character["character_name"] }}</h2>
-      <p>직업: {{ character["job"] or '-' }}</p>
-      <p>레벨: {{ character["level"] or '-' }}</p>
-      <p>월드: {{ character["world"] or '-' }}</p>
+      <p>월드: 메이플랜드</p>
+
+      <p>
+        최근 확인 레벨:
+        {% if character["level"] and character["level"] > 0 %}
+          {{ character["level"] }}
+        {% else %}
+          확인 전
+        {% endif %}
+      </p>
+
+      {% if character["job"] %}
+        <p>직업: {{ character["job"] }}</p>
+      {% endif %}
+
       <p>고유코드: {{ character["unique_code"] }}</p>
     </div>
 
@@ -92,7 +104,15 @@
       <h3>동일 고유코드 캐릭터</h3>
       <ul>
         {% for c in linked_chars %}
-          <li>{{ c["character_name"] }} / {{ c["job"] }} / Lv.{{ c["level"] }}</li>
+          <li>
+            {{ c["character_name"] }}
+            {% if c["level"] and c["level"] > 0 %}
+              / 최근 확인 Lv.{{ c["level"] }}
+            {% endif %}
+            {% if c["job"] %}
+              / {{ c["job"] }}
+            {% endif %}
+          </li>
         {% endfor %}
       </ul>
     </div>
