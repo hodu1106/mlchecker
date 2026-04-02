@@ -311,8 +311,6 @@ HTML = r'''<!doctype html>
       if (state.running) { state.running=false; stopMeasure(); setOCRStatus('측정 중지'); }
       else startMeasure();
     };
-    doc.getElementById('pipResetBtn').onclick = () => resetAll();
-    doc.getElementById('pipCopyBtn').onclick = () => copyResultText();
     pipWindow.addEventListener('pagehide', () => { state.pipWindow = null; });
     syncPiP();
   }
