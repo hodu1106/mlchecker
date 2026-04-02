@@ -90,12 +90,18 @@ def report():
     if request.method == "POST":
         name = request.form.get("character_name", "").strip()
         code = request.form.get("unique_code", "").strip()
+        job = request.form.get("job", "").strip()
+        level_raw = request.form.get("level", "").strip()
         category = request.form.get("category", "").strip()
         summary = request.form.get("summary", "").strip()
         evidence = 1 if request.form.get("evidence") == "on" else 0
 
         if not name or not code or not category or not summary:
             return "입력값이 부족합니다."
+
+        level = 0
+        if level_raw.isdigit():
+            level = int(level_raw)
 
         conn = get_conn()
 
@@ -114,8 +120,24 @@ def report():
                     level,
                     world
                 )
-                VALUES (?, ?, '', 0, '')
-            """, (name, code))
+                VALUES (?, ?, ?, ?, '메이플랜드')
+            """, (name, code, job, level))
+        else:
+            conn.execute("""
+                UPDATE characters
+                SET
+                    unique_code = ?,
+                    job = CASE
+                        WHEN ? != '' THEN ?
+                        ELSE job
+                    END,
+                    level = CASE
+                        WHEN ? > 0 THEN ?
+                        ELSE level
+                    END,
+                    world = '메이플랜드'
+                WHERE character_name = ?
+            """, (code, job, job, level, level, name))
 
         conn.execute("""
             INSERT INTO reports (
