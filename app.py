@@ -1,9 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
+import cloudinary
+import cloudinary.uploader
+import os
 
 app = Flask(__name__)
 
 DB_PATH = "db.sqlite3"
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 
 def get_conn():
@@ -25,8 +35,19 @@ def index():
         LIMIT 10
     """).fetchall()
 
+    recent_reports = conn.execute("""
+        SELECT character_name, category, report_date
+        FROM reports
+        ORDER BY id DESC
+        LIMIT 5
+    """).fetchall()
+
     conn.close()
-    return render_template("index.html", ranking=ranking)
+    return render_template(
+        "index.html",
+        ranking=ranking,
+        recent_reports=recent_reports
+    )
 
 
 @app.route("/search", methods=["GET"])
@@ -73,10 +94,10 @@ def search():
     """, (character["unique_code"],)).fetchall()
 
     reports = conn.execute("""
-        SELECT category, summary, evidence, report_date
+        SELECT category, summary, evidence, report_date, image_url
         FROM reports
         WHERE unique_code = ?
-        ORDER BY report_date DESC
+        ORDER BY report_date DESC, id DESC
     """, (character["unique_code"],)).fetchall()
 
     report_count = len(reports)
@@ -114,6 +135,16 @@ def report():
         level = 0
         if level_raw.isdigit():
             level = int(level_raw)
+
+        image_url = None
+        uploaded_file = request.files.get("image")
+
+        if uploaded_file and uploaded_file.filename:
+            upload_result = cloudinary.uploader.upload(
+                uploaded_file,
+                folder="mlchecker_reports"
+            )
+            image_url = upload_result.get("secure_url")
 
         conn = get_conn()
 
@@ -158,10 +189,11 @@ def report():
                 category,
                 summary,
                 evidence,
-                report_date
+                report_date,
+                image_url
             )
-            VALUES (?, ?, ?, ?, ?, date('now'))
-        """, (name, code, category, summary, evidence))
+            VALUES (?, ?, ?, ?, ?, date('now'), ?)
+        """, (name, code, category, summary, evidence, image_url))
 
         conn.commit()
         conn.close()
